@@ -98,17 +98,31 @@ instruction_set = {
   'erase': ['noargs']
 }
 
-op_codes = [
-  'alpha', #000
-  'cmp',   #001
-  'brane', #010
-  'brae',  #011
-  'draw',  #100
-  'move',  #101
-  'stop',  #110
-  'erase', #111
+op_codes = {
+  'alpha': ['000', 'A'],
+  'cmp':   ['001', 'A'],
+  'brane': ['010', 'B'],
+  'brae':  ['011', 'C'],
+  'draw':  ['100', 'C'],
+  'move':  ['101', 'C'],
+  'stop':  ['110', 'C'],
+  'erase': ['111', 'C']
 ]
 
+
+ISA_map = {
+  'alpha': ['alpha'],
+  'halt':  ['stop', 1],
+  'fail':  ['stop', 0],
+  'cmp':   ['cmp'],
+  'brae':  ['brae'],
+  'brane': ['brane'],
+  'bra':   [('brae'),('brane')],
+  'left':  ['move', 1],
+  'right': ['move', 0],
+  'draw':  ['draw'],
+  'erase': ['erase']
+}
 
 
 
@@ -133,11 +147,11 @@ def main():
   #First pass: create label table, verify syntax, convert the instruction names 
   #to lower case and strip comments from the token lists
   label_table = createLabelTable() 
-  '''
+  
   #Second pass: generate strings of 0s and 1s corresponding to the actual 
   #bitstrings that make up the machine level instructions. 
-  machine_instructions = generateBitStrings()
-  
+ # machine_instructions = generateBitStrings()
+  '''
   #convert strings to bytes
   machine_instructions = makeBytes(machine_instructions)
 
@@ -322,11 +336,13 @@ def stripComments(tokens):
 
 
 ###############################  PASS 2  #####################################
-'''
+
 def generateBitStrings():
   strings = []
-  for i, _list in enumerate(assembly_instructions):
-'''
+  bits = ''
+  for i, tokens in enumerate(assembly_instructions):
+    instruction = tokens[0]
+
 
 
 
