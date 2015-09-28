@@ -130,30 +130,20 @@ def main():
   assembly_instructions = [ line.split() for line in readlines(sys.argv[1]) 
                                           if not re.match(r'^\s*$', line)  ]
   
-  #First pass: create label table, verify syntax, lowercase the instruction names 
-  #and strip comments
+  #First pass: create label table, verify syntax, convert the instruction names 
+  #to lower case and strip comments from the token lists
   label_table = createLabelTable() 
+  '''
+  #Second pass: generate strings of 0s and 1s corresponding to the actual 
+  #bitstrings that make up the machine level instructions. 
+  machine_instructions = generateBitStrings()
+  
+  #convert strings to bytes
+  machine_instructions = makeBytes(machine_instructions)
 
-  print(assembly_instructions)
-'''
-  #Second pass: optimize and generate machine code
-  comment_flag = False
-  for i, list in enumerate(assembly_instructions):
-    instruction, comment_flag = extractValueFromToken(list[0]):
-    if instruction in label_table:
-      continue
-    elif instruction not in instruction_set:
-      abort(
-        error_message = "Not a valid instruction",
-        line_number = i
-      )
-    else:
-      generateMachineInstruction(instruction, comment_flag, list[1:])
-'''
-
-
-
-
+  #write bytes to file in big endian ordering.  
+  pukeBytes(machine_instructions)
+  '''
 
 
 
@@ -204,7 +194,7 @@ def createLabelTable():
           line_number = i
         )
 
-      #modify the original list to include the lowercased instruction name
+      #modify the original list to include the lowercase instruction name
       assembly_instructions[i] = _list[1:]
       assembly_instructions[i].insert(0, instruction)
 
@@ -282,8 +272,8 @@ def abort(error_message, line_number=0, label_flag=0, token=""):
 
 
 #Take a list of tokens and strip anything after/including the first instance of 
-#a '#', which is: (not inside '' or "" and is also in the second token) OR ( is a 
-#part of a label)
+#a '#', which is not: (inside '' or "" and is also in the second token) OR ( is  
+#a part of a label)
 def stripComments(tokens):
   new_token_list = []
   tokens = tokens[:2]
@@ -324,9 +314,19 @@ def stripComments(tokens):
 
 
 
+
+
+
+
+
+
+
 ###############################  PASS 2  #####################################
-
-
+'''
+def generateBitStrings():
+  strings = []
+  for i, _list in enumerate(assembly_instructions):
+'''
 
 
 
