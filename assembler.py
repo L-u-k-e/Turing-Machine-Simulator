@@ -107,7 +107,7 @@ op_codes = {
   'move':  ['101', 'C'],
   'stop':  ['110', 'C'],
   'erase': ['111', 'C']
-]
+}
 
 
 ISA_map = {
@@ -150,7 +150,7 @@ def main():
   
   #Second pass: generate strings of 0s and 1s corresponding to the actual 
   #bitstrings that make up the machine level instructions. 
- # machine_instructions = generateBitStrings()
+  machine_instructions = generateBitStrings()
   '''
   #convert strings to bytes
   machine_instructions = makeBytes(machine_instructions)
@@ -191,7 +191,7 @@ def createLabelTable():
           label_flag = True
         )
       else:
-        label_table[token] = i
+        label_table[token] = i - len(label_table)
     else:
       #Not a label declaration, check for syntax errors. 
       instruction, comment_flag = extractValueFromToken(token)
@@ -340,9 +340,29 @@ def stripComments(tokens):
 def generateBitStrings():
   strings = []
   bits = ''
+  function_map = {
+    'A': A,
+    'B': B,
+    'C': C
+  }
   for i, tokens in enumerate(assembly_instructions):
     instruction = tokens[0]
+    args = tokens[1] if len(tokens) > 1 else None
+    if(instruction[0] == '!'):
+      pass
+    else
+    machine_instruction = ISA_map[instruction]; 
+    bits += op_codes[instruction][0];
+    function_map[op_codes[instruction][1]](args)
 
+def A(arg = None):
+  print('A')
+
+def B(arg = None):
+  pass
+
+def C(arg = None):
+  pass
 
 
 
