@@ -117,7 +117,7 @@ ISA_map = {
   'cmp':   ['cmp'],
   'brae':  ['brae'],
   'brane': ['brane'],
-  'bra':   [('brae'),('brane')],
+  'bra':   [('brae',),('brane',)],
   'left':  ['move', 1],
   'right': ['move', 0],
   'draw':  ['draw'],
@@ -338,6 +338,12 @@ def stripComments(tokens):
 ###############################  PASS 2  #####################################
 
 def generateBitStrings():
+  #translate assembly instructions to their lower level equivs using the ISA_map
+  #things are still in english here
+  decomposed_instructions = decomposeInstructions();
+
+  optimizeInstructions(decomposed_instructions)
+  '''
   strings = []
   bits = ''
   function_map = {
@@ -350,10 +356,12 @@ def generateBitStrings():
     args = tokens[1] if len(tokens) > 1 else None
     if(instruction[0] == '!'):
       pass
-    else
-    machine_instruction = ISA_map[instruction]; 
-    bits += op_codes[instruction][0];
-    function_map[op_codes[instruction][1]](args)
+    else:
+      machine_instruction = ISA_map[instruction]; 
+      #bits += op_codes[instruction][0];
+      op_info = op_codes[machine_instruction[0]]
+      print(op_info)
+      #function_map[op_codes[ISA_map[instruction][0]][1]](args)
 
 def A(arg = None):
   print('A')
@@ -363,9 +371,44 @@ def B(arg = None):
 
 def C(arg = None):
   pass
+'''
 
 
 
+def decomposeInstructions():
+  
+  #Returns a list of 1-2 individual token lists representing the decomposed instruction.
+  def decompose(instruction_tokens):
+    instruction = instruction_tokens[0]
+    arg = instruction_tokens[1] if len(instruction_tokens) > 1 else None
+    machine_instruction_info = ISA_map[instruction]
+    operation = machine_instruction_info[0]
+    if isInstance(operation, tuple): 
+      #This is the bra instruction. It needs to expand into 2 operations.
+      for instr in machine_instruction_info:
+
+    else:
+      result.append(machine_instruction_info.append(arg))
+  
+  '''
+  for i, tokens in enumerate(assembly_instructions):
+    
+
+    instruction = tokens[0]
+    arg = tokens[1] if len(tokens) > 1 else None
+    machine_instruction_info = ISA_map[instruction]
+    operation = machine_instruction_info[0]
+    if isInstance(operation, tuple): 
+      #This is the bra instruction. It needs to expand into 2 operations.
+      for instr in machine_instruction_info:
+    else:
+      result.append(machine_instruction_info.append(arg))
+'''
+
+#As we are de-composing instructions and optimizing we will need to adjust the 
+#lines that the respective labels point to.
+def adjustLabelTable(current_line=0, increment=0):
+  pass
 
 
 
