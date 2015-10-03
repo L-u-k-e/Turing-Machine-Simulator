@@ -1,5 +1,4 @@
-alpha "abAB"
-bra !Q 
+alpha "abAB" 
   	 	
 	   
 		

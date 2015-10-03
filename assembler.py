@@ -155,6 +155,7 @@ def main():
   #bitstrings that make up the machine level instructions. 
   machine_instructions = generateStrings()
 
+  print(label_table)
   '''
   #convert strings to bytes
   machine_instructions = makeBytes(machine_instructions)
@@ -391,7 +392,7 @@ def C(arg = None):
 
 def decomposeInstructions():
   
-  #Returns a list of 1-2 individual token lists representing the decomposed instruction.
+  #Returns a list of token lists representing the decomposed instruction.
   def decompose(instruction_tokens):
     result = []
     instruction = instruction_tokens[0]
@@ -399,15 +400,18 @@ def decomposeInstructions():
     machine_instruction_info = copy.deepcopy(ISA_map[instruction])
     operation = machine_instruction_info[0]
     if isinstance(operation, tuple): 
-      #The instruction needs to expand into multiple operations.
+      #The instruction needs to expand into multiple *different* operations (i.e bra).
       for instr in machine_instruction_info:
         result.append(decompose([instr[0], arg])[0])
     elif [True for form in syntax_forms[instruction] if re.match(r'ascii_.*', form)]:
+      #ascii_multiple's need to expand into multiple ascii_single's
       chars = arg[1:-1]
       for char in chars:
         result.append([instruction, char])
     else:
-      machine_instruction_info.append(arg)
+      arg = int(arg) if 'number' in syntax_forms[instruction] else arg
+      if arg:
+        machine_instruction_info.append(arg)
       result.append(machine_instruction_info)
     return result
 
@@ -416,7 +420,7 @@ def decomposeInstructions():
   for i, tokens in enumerate(assembly_instructions):
     equivalent_instruction_set = decompose(tokens)
     incr = len(equivalent_instruction_set) - 1
-    adjustLabelTable( current_line = cur, incr=incr)
+    adjustLabelTable( current_line=cur, incr=incr)
     cur += incr
     decomposed_instructions += equivalent_instruction_set
     cur += 1
@@ -429,7 +433,7 @@ def decomposeInstructions():
 def adjustLabelTable(current_line=0, incr=0):
   global label_table
   for label in label_table.keys():
-    if label_table[label] > current_line:
+    if label_table[label] >= current_line:
       label_table[label] += incr 
 
 
