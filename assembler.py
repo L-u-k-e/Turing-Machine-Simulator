@@ -68,7 +68,7 @@ Desc:
 
 import sys
 import re
-
+import copy
 
 
 
@@ -84,7 +84,9 @@ import re
 
 ############################### GLOBALS #####################################
 assembly_instructions = []
-instruction_set = {
+label_table = {}
+
+syntax_forms = {
   'alpha': ['ascii_single', 'ascii_multiple'],
   'halt':  ['noargs'],
   'fail':  ['noargs'],
@@ -139,18 +141,20 @@ ISA_map = {
 ###############################  MAIN  #####################################
 def main():
   global assembly_instructions
-  
+  global label_table  
   #Read the instructions into a 2d array of tokens. Ignore empty lines.
   assembly_instructions = [ line.split() for line in readlines(sys.argv[1]) 
                                           if not re.match(r'^\s*$', line)  ]
   
   #First pass: create label table, verify syntax, convert the instruction names 
-  #to lower case and strip comments from the token lists
-  label_table = createLabelTable() 
+  #to lower case and strip the comments from the token lists. Also, remove the 
+  #label declarations. 
+  assembly_instructions, label_table = createLabelTable(assembly_instructions) 
   
-  #Second pass: generate strings of 0s and 1s corresponding to the actual 
+  #Second pass: generate strings of '0's and '1's corresponding to the actual 
   #bitstrings that make up the machine level instructions. 
-  machine_instructions = generateBitStrings()
+  machine_instructions = generateStrings()
+
   '''
   #convert strings to bytes
   machine_instructions = makeBytes(machine_instructions)
@@ -171,9 +175,13 @@ def main():
 
 ###############################  PASS 1  #####################################
 #Report syntax errors and create the label table.
-def createLabelTable():
-  global assembly_instructions
-  label_table = {}
+def createLabelTable(token_lists):
+  global label_table
+
+  #token_lists with comments and label declarations removed. 
+  trimmed_instructions = []
+
+  is_label = False
   for i, _list in enumerate(assembly_instructions):
     token = _list[0]
     if (re.match(r'^!.*', token)):
@@ -191,11 +199,13 @@ def createLabelTable():
           label_flag = True
         )
       else:
+        is_label = True
         label_table[token] = i - len(label_table)
     else:
       #Not a label declaration, check for syntax errors. 
+      is_label = False
       instruction, comment_flag = extractValueFromToken(token)
-      if instruction not in instruction_set:
+      if instruction not in syntax_forms:
         abort(
           error_message = "Not a valid instruction",
           line_number = i
@@ -209,11 +219,13 @@ def createLabelTable():
         )
 
       #modify the original list to include the lowercase instruction name
-      assembly_instructions[i] = _list[1:]
-      assembly_instructions[i].insert(0, instruction)
+      _list[0] = instruction
 
-    #strip comments
-    assembly_instructions[i] = stripComments(assembly_instructions[i])
+    if not is_label:
+      trimmed_instructions.append(stripComments(_list))
+
+  return trimmed_instructions, label_table
+
 
 
 
@@ -224,20 +236,20 @@ def createLabelTable():
 #forms, so I could have just detected 'alpha' as a special case, but I like the
 #fact that this method is more extensible. (Any instruction can have multiple forms this way)
 def verifyArguments(instruction, arguments, line_number, comment_flag=False):
-  argforms = instruction_set[instruction]
+  argforms = syntax_forms[instruction]
   valid = False
   official_error_message = "" 
   for form in argforms:
     error_message = "" 
     if form == 'noargs' and arguments and arguments[0][0] != '#' and not comment_flag:
       error_message = 'This instruction expects no arguments'
-    elif form == 'label' and arguments[0][0] != '!':
+    elif form != 'noargs' and (comment_flag or (not arguments) or arguments[0][0] == '#'):
+      error_message = "This instruction requires an argument, but none were found."
+    elif form == 'label' and arguments and arguments[0][0] != '!':
       error_message = 'This instruction expects a label as its argument'
     elif form != 'noargs':
       argument, comment_flag2 = extractValueFromToken(arguments[0])
-      if comment_flag or not arguments or arguments[0][0] == '#':
-        error_message = "This instruction requires an argument, but none were found."
-      elif form == 'ascii_single' and not re.match(r"^'.?'#?.*$", argument):
+      if form == 'ascii_single' and not re.match(r"^'.?'#?.*$", argument):
         error_message = "The argument provided to this instruction must match: '.?'"
       elif form == 'ascii_multiple' and not re.match(r'^"[^"][^"]+"#?.*$', argument):
         error_message = 'The argument provided to this instruction must match ^"[^"][^"]+"$'
@@ -250,15 +262,17 @@ def verifyArguments(instruction, arguments, line_number, comment_flag=False):
       elif len(arguments) > 1 and arguments[1][0] != '#' and not comment_flag2:
         error_message = 'You may not provide more than 1 argument to this function'
 
-    if not error_message:
-      #If we get here, then line matches one of the expected forms for this argument
+    if error_message:
+      official_error_message = error_message
+    else:
+      #If we get here, then the line matches one of the expected forms for this argument
       valid = True
       break
   
   if not valid:
     abort(
       line_number = line_number,
-      error_message = error_message
+      error_message = official_error_message
     )
     
 
@@ -337,12 +351,12 @@ def stripComments(tokens):
 
 ###############################  PASS 2  #####################################
 
-def generateBitStrings():
+def generateStrings():
   #translate assembly instructions to their lower level equivs using the ISA_map
-  #things are still in english here
-  decomposed_instructions = decomposeInstructions();
-
-  optimizeInstructions(decomposed_instructions)
+  decomposed_instructions = decomposeInstructions(); #things are still in english here
+  print(decomposed_instructions)
+  #optimizeInstructions(decomposed_instructions)
+  
   '''
   strings = []
   bits = ''
@@ -379,36 +393,44 @@ def decomposeInstructions():
   
   #Returns a list of 1-2 individual token lists representing the decomposed instruction.
   def decompose(instruction_tokens):
+    result = []
     instruction = instruction_tokens[0]
     arg = instruction_tokens[1] if len(instruction_tokens) > 1 else None
-    machine_instruction_info = ISA_map[instruction]
+    machine_instruction_info = copy.deepcopy(ISA_map[instruction])
     operation = machine_instruction_info[0]
-    if isInstance(operation, tuple): 
-      #This is the bra instruction. It needs to expand into 2 operations.
+    if isinstance(operation, tuple): 
+      #The instruction needs to expand into multiple operations.
       for instr in machine_instruction_info:
-
+        result.append(decompose([instr[0], arg])[0])
+    elif [True for form in syntax_forms[instruction] if re.match(r'ascii_.*', form)]:
+      chars = arg[1:-1]
+      for char in chars:
+        result.append([instruction, char])
     else:
-      result.append(machine_instruction_info.append(arg))
-  
-  '''
+      machine_instruction_info.append(arg)
+      result.append(machine_instruction_info)
+    return result
+
+  decomposed_instructions = []
+  cur = 0  
   for i, tokens in enumerate(assembly_instructions):
-    
+    equivalent_instruction_set = decompose(tokens)
+    incr = len(equivalent_instruction_set) - 1
+    adjustLabelTable( current_line = cur, incr=incr)
+    cur += incr
+    decomposed_instructions += equivalent_instruction_set
+    cur += 1
 
-    instruction = tokens[0]
-    arg = tokens[1] if len(tokens) > 1 else None
-    machine_instruction_info = ISA_map[instruction]
-    operation = machine_instruction_info[0]
-    if isInstance(operation, tuple): 
-      #This is the bra instruction. It needs to expand into 2 operations.
-      for instr in machine_instruction_info:
-    else:
-      result.append(machine_instruction_info.append(arg))
-'''
+  return decomposed_instructions
+
 
 #As we are de-composing instructions and optimizing we will need to adjust the 
 #lines that the respective labels point to.
-def adjustLabelTable(current_line=0, increment=0):
-  pass
+def adjustLabelTable(current_line=0, incr=0):
+  global label_table
+  for label in label_table.keys():
+    if label_table[label] > current_line:
+      label_table[label] += incr 
 
 
 
