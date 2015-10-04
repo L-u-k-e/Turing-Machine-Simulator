@@ -100,11 +100,12 @@ syntax_forms = {
   'erase': ['noargs']
 }
 
+
 op_codes = {
   'alpha': ['000', 'A'],
   'cmp':   ['001', 'A'],
   'brane': ['010', 'B'],
-  'brae':  ['011', 'C'],
+  'brae':  ['011', 'B'],
   'draw':  ['100', 'C'],
   'move':  ['101', 'C'],
   'stop':  ['110', 'C'],
@@ -122,7 +123,7 @@ ISA_map = {
   'bra':   [('brae',),('brane',)],
   'left':  ['move', 1],
   'right': ['move', 0],
-  'draw':  ['draw'],
+  'draw':  ['draw', 0, 0],
   'erase': ['erase']
 }
 
@@ -146,16 +147,15 @@ def main():
   assembly_instructions = [ line.split() for line in readlines(sys.argv[1]) 
                                           if not re.match(r'^\s*$', line)  ]
   
-  #First pass: create label table, verify syntax, convert the instruction names 
+  #create label table, verify syntax, convert the instruction names 
   #to lower case and strip the comments from the token lists. Also, remove the 
   #label declarations. 
   assembly_instructions, label_table = createLabelTable(assembly_instructions) 
   
-  #Second pass: generate strings of '0's and '1's corresponding to the actual 
+  #generate strings of '0's and '1's corresponding to the actual 
   #bitstrings that make up the machine level instructions. 
   machine_instructions = generateStrings()
 
-  print(label_table)
   '''
   #convert strings to bytes
   machine_instructions = makeBytes(machine_instructions)
@@ -355,9 +355,14 @@ def stripComments(tokens):
 def generateStrings():
   #translate assembly instructions to their lower level equivs using the ISA_map
   decomposed_instructions = decomposeInstructions(); #things are still in english here
-  print(decomposed_instructions)
-  #optimizeInstructions(decomposed_instructions)
-  
+  #decomposed_instructions = optimizeInstructions(decomposed_instructions)
+
+  #substitute the label strings with the line addresses, now that it's safe to do so.
+  decomposed_instructions = replaceLabels(decomposed_instructions)
+  '''
+  bit_strings = generateBitStrings(decomposed_instructions)
+
+  return bit_strings
   '''
   strings = []
   bits = ''
@@ -366,27 +371,40 @@ def generateStrings():
     'B': B,
     'C': C
   }
-  for i, tokens in enumerate(assembly_instructions):
+  for i, tokens in enumerate(decomposed_instructions):
+    bits = ''
     instruction = tokens[0]
-    args = tokens[1] if len(tokens) > 1 else None
-    if(instruction[0] == '!'):
-      pass
-    else:
-      machine_instruction = ISA_map[instruction]; 
-      #bits += op_codes[instruction][0];
-      op_info = op_codes[machine_instruction[0]]
-      print(op_info)
-      #function_map[op_codes[ISA_map[instruction][0]][1]](args)
+    args = tokens[1:] if len(tokens) else None
+    op_info = op_codes[instruction]
+    bits = op_info[0]
+    bits += function_map[op_info[1]](*args)
+    strings.append(bits)
 
-def A(arg = None):
-  print('A')
+  for i, bits in enumerate(strings):
+    print("{0}{1}".format(str(decomposed_instructions[i]).ljust(25),  bits) )
+    
+    
 
-def B(arg = None):
-  pass
+#o=op code
+#v=variable
+#r=reserved
+#i=integer
+#c=char
 
-def C(arg = None):
-  pass
-'''
+#A:ooorrrrrcccccccc
+#B:oooiiiiiiiiiiiii
+#C:oooiiiivcccccccc
+def A(char):
+  return '{:013b}'.format(ord(char))
+
+def B(address):
+  return '{:013b}'.format(address)
+
+def C(flag, arg2=False, arg3=False):
+  flag = str(flag)
+  number = '{:04b}'.format(arg2) if arg2 else '0000'
+  char = '{:08b}'.format(ord(arg3)) if arg3 else '00000000'
+  return number + flag + char
 
 
 
@@ -407,7 +425,7 @@ def decomposeInstructions():
       #ascii_multiple's need to expand into multiple ascii_single's
       chars = arg[1:-1]
       for char in chars:
-        result.append([instruction, char])
+        result.append(machine_instruction_info + [char])
     else:
       arg = int(arg) if 'number' in syntax_forms[instruction] else arg
       if arg:
@@ -439,6 +457,17 @@ def adjustLabelTable(current_line=0, incr=0):
 
 
 
+def replaceLabels(token_lists):
+  
+  def substitue_labels(tokens):
+    new_list = []
+    for i, token in enumerate(tokens):
+      push_me = label_table[token] if token in label_table else token
+      new_list.append(push_me)
+    return new_list
+
+  result = list(map(substitue_labels, token_lists))
+  return result
 
 
 

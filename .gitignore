@@ -1,0 +1,5 @@
+*.out
+amos.txt
+bitstring.py
+bs_union.c
+bittest.py
