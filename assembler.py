@@ -69,7 +69,7 @@ Desc:
 import sys
 import re
 import copy
-
+import struct
 
 
 
@@ -139,6 +139,13 @@ ISA_map = {
 
 
 
+
+
+
+
+
+
+
 ###############################  MAIN  #####################################
 def main():
   global assembly_instructions
@@ -149,20 +156,33 @@ def main():
   
   #create label table, verify syntax, convert the instruction names 
   #to lower case and strip the comments from the token lists. Also, remove the 
-  #label declarations. 
+  #label declarations. (Pass 1)
   assembly_instructions, label_table = createLabelTable(assembly_instructions) 
   
-  #generate strings of '0's and '1's corresponding to the actual 
-  #bitstrings that make up the machine level instructions. 
-  machine_instructions = generateStrings()
+  #generate the actual machine instructions (Pass 2)
+  machine_instructions = generateMachineInstructions()
 
-  '''
-  #convert strings to bytes
-  machine_instructions = makeBytes(machine_instructions)
+  #write bytes to file.  
+  pukeBytes(machine_instructions, sys.argv[1]+'.bin')
 
-  #write bytes to file in big endian ordering.  
-  pukeBytes(machine_instructions)
-  '''
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -232,6 +252,10 @@ def createLabelTable(token_lists):
 
 
 
+
+
+
+
 #Verify syntax of the arguments provided to the function.
 #This is kind of a weird way to do it, because only one instruction has multiple
 #forms, so I could have just detected 'alpha' as a special case, but I like the
@@ -278,6 +302,13 @@ def verifyArguments(instruction, arguments, line_number, comment_flag=False):
     
 
 
+
+
+
+
+
+
+
 #Extracts everything before the first '#' and converts it to lowercase.
 #Sets comment flag to True if a '#' was found.
 def extractValueFromToken(token):
@@ -285,6 +316,13 @@ def extractValueFromToken(token):
   result = parts[0].lower()
   comment_flag = True if len(parts) > 1 else False
   return result, comment_flag
+
+
+
+
+
+
+
 
 
 
@@ -296,6 +334,12 @@ def abort(error_message, line_number=0, label_flag=0, token=""):
 
   exit_message = "{0}\n\t{1}".format(start, error_message)
   sys.exit(exit_message)
+
+
+
+
+
+
 
 
 
@@ -350,66 +394,47 @@ def stripComments(tokens):
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ###############################  PASS 2  #####################################
 
-def generateStrings():
+def generateMachineInstructions():
   #translate assembly instructions to their lower level equivs using the ISA_map
   decomposed_instructions = decomposeInstructions(); #things are still in english here
-  #decomposed_instructions = optimizeInstructions(decomposed_instructions)
+  
+  #optimize instrution set for fewest cycles
+  decomposed_instructions = optimizeInstructionSet(decomposed_instructions)
 
   #substitute the label strings with the line addresses, now that it's safe to do so.
   decomposed_instructions = replaceLabels(decomposed_instructions)
-  '''
-  bit_strings = generateBitStrings(decomposed_instructions)
+  
+  #actually generate the machine code
+  machine_instructions = makeBytes(decomposed_instructions)
 
-  return bit_strings
-  '''
-  strings = []
-  bits = ''
-  function_map = {
-    'A': A,
-    'B': B,
-    'C': C
-  }
-  for i, tokens in enumerate(decomposed_instructions):
-    bits = ''
-    instruction = tokens[0]
-    args = tokens[1:] if len(tokens) else None
-    op_info = op_codes[instruction]
-    bits = op_info[0]
-    bits += function_map[op_info[1]](*args)
-    strings.append(bits)
+  return machine_instructions
 
-  for i, bits in enumerate(strings):
-    print("{0}{1}".format(str(decomposed_instructions[i]).ljust(25),  bits) )
-    
-    
 
-#o=op code
-#v=variable
-#r=reserved
-#i=integer
-#c=char
 
-#A:ooorrrrrcccccccc
-#B:oooiiiiiiiiiiiii
-#C:oooiiiivcccccccc
-def A(char):
-  return '{:013b}'.format(ord(char))
 
-def B(address):
-  return '{:013b}'.format(address)
 
-def C(flag, arg2=False, arg3=False):
-  flag = str(flag)
-  number = '{:04b}'.format(arg2) if arg2 else '0000'
-  char = '{:08b}'.format(ord(arg3)) if arg3 else '00000000'
-  return number + flag + char
+
+
 
 
 
 def decomposeInstructions():
-  
   #Returns a list of token lists representing the decomposed instruction.
   def decompose(instruction_tokens):
     result = []
@@ -446,13 +471,39 @@ def decomposeInstructions():
   return decomposed_instructions
 
 
+
+
+
+
+
+
+
+
 #As we are de-composing instructions and optimizing we will need to adjust the 
 #lines that the respective labels point to.
 def adjustLabelTable(current_line=0, incr=0):
   global label_table
   for label in label_table.keys():
     if label_table[label] >= current_line:
-      label_table[label] += incr 
+      label_table[label] += incr
+
+
+
+
+
+
+
+
+
+
+def optimizeInstructionSet(instructions):
+  return instructions
+
+
+
+
+
+
 
 
 
@@ -478,11 +529,116 @@ def replaceLabels(token_lists):
 
 
 
+def makeBytes(instructions):
+  
+  def A(char):
+    return '{:013b}'.format(ord(char))
 
-##########################  HELPER FUNCTIONS  ################################
+  def B(address):
+    return '{:013b}'.format(address)
+
+  def C(flag, arg2=False, arg3=False):
+    flag = str(flag)
+    number = '{:04b}'.format(arg2) if arg2 else '0000'
+    char = '{:08b}'.format(ord(arg3)) if arg3 else '00000000'
+    return number + flag + char  
+
+  function_map = {
+    'A': A,
+    'B': B,
+    'C': C
+  }
+
+  char_strings = [] #used for debugging
+  bit_strings = []
+  bits = ''
+  for i, tokens in enumerate(instructions):
+    bits = ''
+    instruction = tokens[0]
+    args = tokens[1:] if len(tokens) else None
+    op_info = op_codes[instruction]
+    bits = op_info[0]
+    bits += function_map[op_info[1]](*args)
+    int_value = int(bits, 2)
+    big_endian_u_short = struct.pack('>H', int_value)
+    bit_strings.append(big_endian_u_short)
+
+
+  #uncomment for debugging (leave the indentation as is)
+  #'''
+    char_strings.append(bits)
+  for i, bits in enumerate(char_strings):
+    print("{0}{1}".format(str(instructions[i]).ljust(25),  bits) )
+  #'''
+  return bit_strings    
+
+
+
+
+
+
+
+
+
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+##########################  IO FUNCTIONS  ################################
 #readlines of a file into a list
 def readlines(filename):
   return [ line.strip() for line in open(filename) ]
+
+
+
+
+
+
+
+
+
+#write each bit structure in an array to the specified output file
+def pukeBytes(instructions, filename):
+  out = open(filename, 'wb')
+  for instruction in instructions:
+    out.write(instruction)
+  out.close()
+
+
+
+
+
+
+
+
+
 
 
 
@@ -500,3 +656,9 @@ def readlines(filename):
 
 
 main()
+'''
+try:
+  main()
+except:
+  print('Well, this is embarassing :/\nThere was an internal error during the assembly.')
+'''
