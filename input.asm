@@ -1,4 +1,4 @@
-alpha "abAB" 
+alpha 'abAB#hello'#hi 
   	 	
 	   
 		
@@ -40,4 +40,4 @@ alpha "abAB"
 	brae !3
 	brane !3
 !3  
-	cmp 'a'
+	cmp "'"

@@ -150,6 +150,10 @@ ISA_map = {
 def main():
   global assembly_instructions
   global label_table  
+
+  if len(sys.argv) != 2:
+    sys.exit("This assembler expects 1 and only 1 input file.")
+
   #Read the instructions into a 2d array of tokens. Ignore empty lines.
   assembly_instructions = [ line.split() for line in readlines(sys.argv[1]) 
                                           if not re.match(r'^\s*$', line)  ]
@@ -243,7 +247,7 @@ def createLabelTable(token_lists):
       _list[0] = instruction
 
     if not is_label:
-      trimmed_instructions.append(stripComments(_list))
+      trimmed_instructions.append(stripCommentsAndQuotes(_list))
 
   return trimmed_instructions, label_table
 
@@ -267,25 +271,32 @@ def verifyArguments(instruction, arguments, line_number, comment_flag=False):
   for form in argforms:
     error_message = "" 
     if form == 'noargs' and arguments and arguments[0][0] != '#' and not comment_flag:
-      error_message = 'This instruction expects no arguments'
+      error_message = 'This instruction expects no arguments.'
     elif form != 'noargs' and (comment_flag or (not arguments) or arguments[0][0] == '#'):
       error_message = "This instruction requires an argument, but none were found."
     elif form == 'label' and arguments and arguments[0][0] != '!':
-      error_message = 'This instruction expects a label as its argument'
+      error_message = 'This instruction expects a label as its argument.'
     elif form != 'noargs':
+      argument = arguments[0]
+      if form == 'ascii_single' and not ( re.match(r'^(("")|(\'\'))(#.*)?$', argument) or
+                                          re.match(r"^'[^']'(#.*)?$", argument)       or
+                                          re.match(r'^"[^"]"(#.*)?$', argument)         ):
+        error_message = "The agument provided to this instruction must be a single valid ascii char"
+        if 'ascii_multiple' in argforms:
+          error_message += ' or a sequence of valid ascii chars.'
+      elif form == 'ascii_multiple' and not ( re.match(r"^'[^'][^']+'(#.*)?$", argument) or
+                                              re.match(r'^"[^"][^"]+"(#.*)?$', argument)   ):
+        error_message = 'The argument provided to this instruction must be a valid ascii sequence.'
+
       argument, comment_flag2 = extractValueFromToken(arguments[0])
-      if form == 'ascii_single' and not re.match(r"^'.?'#?.*$", argument):
-        error_message = "The argument provided to this instruction must match: '.?'"
-      elif form == 'ascii_multiple' and not re.match(r'^"[^"][^"]+"#?.*$', argument):
-        error_message = 'The argument provided to this instruction must match ^"[^"][^"]+"$'
-      elif form == 'number':
+      if form == 'number':
         try: 
           if int(argument) > 15 or int(argument) < 0:
-            error_message = "This instruction only accepts integers between 0 and 15"
+            error_message = "This instruction only accepts integers between 0 and 15."
         except ValueError:
           error_message = "This instruction expects an integer argument."
       elif len(arguments) > 1 and arguments[1][0] != '#' and not comment_flag2:
-        error_message = 'You may not provide more than 1 argument to this function'
+        error_message = 'You may not provide more than 1 argument to this instruction.'
 
     if error_message:
       official_error_message = error_message
@@ -344,39 +355,24 @@ def abort(error_message, line_number=0, label_flag=0, token=""):
 
 
 
-#Take a list of tokens and strip anything after/including the first instance of 
-#a '#', which is not: (inside '' or "" and is also in the second token) OR ( is  
-#a part of a label)
-def stripComments(tokens):
+#Take a list of tokens and strip comments and quote chars.
+#label declarations shouldn't be passed to this function. 
+def stripCommentsAndQuotes(tokens):
   new_token_list = []
   tokens = tokens[:2]
-  if tokens[0][0] != '!': 
-    token1_parts = tokens[0].split('#')
-    new_token_list.append(token1_parts[0])
-    if len(token1_parts) > 1:
-      return new_token_list
-  else:
-    new_token_list.append(tokens[0])
 
-  if(len(tokens) > 1):
-    token2 = tokens[1]
-    if token2[0]  in ("'", '"'):
-      token2_parts = []
-      if token2[0] == "'":
-        token2_parts = re.split(r"('.?')", token2) 
-      else:
-        token2_parts = re.split(r'("[^"]*")', token2)
+  token1_parts = tokens[0].split('#')
+  new_token_list.append(token1_parts[0])
 
-      new_token_list.append(token2_parts[1])
-      if len(token2_parts) > 1:
-        return new_token_list
-    elif token2[0] == "!":
-      new_token_list.append(token2)
-    else:
-      token2_parts = token2.split('#')
-      new_token_list.append(token2_parts[0])
-      if len(token2_parts) > 1:
-        return new_token_list
+  if len(tokens) > 1 and len(token1_parts) == 1:
+    arg = tokens[1]
+    if arg[0] == '"':
+      arg = re.sub(r'"([^"]*).*', r'\1', arg)
+    elif arg[0] == "'":
+      arg = re.sub(r"'([^']*)'.*", r'\1', arg)
+    elif arg[0] != '!':
+      arg = arg.split('#')[0]
+    new_token_list.append(arg)
 
   return new_token_list
 
@@ -446,15 +442,13 @@ def decomposeInstructions():
       #The instruction needs to expand into multiple *different* operations (i.e bra).
       for instr in machine_instruction_info:
         result.append(decompose([instr[0], arg])[0])
-    elif [True for form in syntax_forms[instruction] if re.match(r'ascii_.*', form)]:
+    elif 'ascii_multiple' in syntax_forms[instruction]:
       #ascii_multiple's need to expand into multiple ascii_single's
-      chars = arg[1:-1]
-      for char in chars:
+      for char in arg:
         result.append(machine_instruction_info + [char])
     else:
       arg = int(arg) if 'number' in syntax_forms[instruction] else arg
-      if arg:
-        machine_instruction_info.append(arg)
+      if arg:machine_instruction_info.append(arg)
       result.append(machine_instruction_info)
     return result
 
@@ -510,14 +504,14 @@ def optimizeInstructionSet(instructions):
 
 def replaceLabels(token_lists):
   
-  def substitue_labels(tokens):
+  def substitute_labels(tokens):
     new_list = []
     for i, token in enumerate(tokens):
       push_me = label_table[token] if token in label_table else token
       new_list.append(push_me)
     return new_list
 
-  result = list(map(substitue_labels, token_lists))
+  result = list(map(substitute_labels, token_lists))
   return result
 
 
@@ -614,8 +608,10 @@ def makeBytes(instructions):
 ##########################  IO FUNCTIONS  ################################
 #readlines of a file into a list
 def readlines(filename):
-  return [ line.strip() for line in open(filename) ]
-
+  try:
+    return [ line.strip() for line in open(filename) ]
+  except:
+    sys.exit('Error: The provided filename "{0}" does not exist in this directory.'.format(filename))
 
 
 
