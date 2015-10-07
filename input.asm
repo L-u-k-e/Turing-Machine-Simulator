@@ -1,4 +1,4 @@
-alpha 'abAB#hello'#hi 
+alpha 'abAB' 
   	 	
 	   
 		

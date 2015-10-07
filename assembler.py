@@ -124,7 +124,7 @@ ISA_map = {
   'left':  ['move', 1],
   'right': ['move', 0],
   'draw':  ['draw', 0, 0],
-  'erase': ['erase']
+  'erase': ['erase', 0]
 }
 
 
@@ -230,7 +230,9 @@ def createLabelTable(token_lists):
       #Not a label declaration, check for syntax errors. 
       is_label = False
       instruction, comment_flag = extractValueFromToken(token)
-      if instruction not in syntax_forms:
+      if not instruction: 
+        continue
+      elif instruction not in syntax_forms:
         abort(
           error_message = "Not a valid instruction",
           line_number = i
@@ -525,12 +527,18 @@ def replaceLabels(token_lists):
 
 def makeBytes(instructions):
   
-  def A(char):
+  def A(char='\0'):
     return '{:013b}'.format(ord(char))
 
   def B(address):
-    return '{:013b}'.format(address)
-
+    try:
+      return '{:013b}'.format(address)
+    except ValueError:
+      abort(
+        error_message = "This label was referenced but never declared:", 
+        token = address,
+        label_flag = True
+      )
   def C(flag, arg2=False, arg3=False):
     flag = str(flag)
     number = '{:04b}'.format(arg2) if arg2 else '0000'
