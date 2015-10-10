@@ -201,15 +201,18 @@ def drawAndMove(N=0, LHE=0, C=0):
 
 
 def move(N=0, LHE=0, C=0):
-  global HEAD
+  global HEAD, TAPE
   direction = -1 if LHE else 1
   HEAD += N * direction
 
   #If we went off the end of the tape, extend the tape with blanks. 
   if not HEAD in range(0, len(TAPE)):
-    end = 0 if (HEAD < 0) else len(TAPE) - 1
-    reset = 0 if (HEAD < 0) else HEAD
-    for _ in range(HEAD, end, -direction):
+    start, end, reset = HEAD, 0, 0
+    if HEAD > 0:
+      end = len(TAPE)
+      start = HEAD + 1
+      reset = HEAD
+    for _ in range(start, end, -direction):
       TAPE.insert(end, {'empty': True})
     HEAD = reset
 
@@ -297,11 +300,8 @@ def slurpInstructions(filename):
 
 
 def merge(list1, list2):
-  result = []
-  result += list1
-  if len(list2) > len(list1):
-    result += list2[len(list1):]
-  return result
+  return list1 + list2[len(list1):]
+  
 
 
 #readlines of a file into a list
