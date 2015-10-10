@@ -3,7 +3,6 @@ import copy
 import struct
 
 
-
 ################################## GLOBALS #####################################
 RAM = []
 STACK = []
@@ -12,7 +11,7 @@ ALPHA = []
 HEAD = 0
 PC = 0
 REG = 0
-EXIT_STATUS = ""
+BOOK = {}
 
 OP_INFO = {
   '000':  ['alpha',         'A'],
@@ -56,23 +55,25 @@ def main():
 
 
 def simulate(input_tape):
-  global TAPE, HEAD, ALPHA, PC, REG, EXIT_STATUS, IR
+  global TAPE, HEAD, ALPHA, PC, REG, IR, BOOK
   TAPE = initTape(input_tape) 
   HEAD = 0
   ALPHA = [False] * 256
   PC = 0
   REG = {'empty': True}
-  EXIT_STATUS = ""
 
-  cycles = 0
+  BOOK['cycles'] = 0
+  BOOK['moves'] = 0
+  BOOK['writes'] = 0
+  BOOK['exit status'] = ''
   while True:
     IR, PC = fetch(PC)
     control_signals = decode(IR)
     done = execute(**control_signals)
-    cycles += 1
+    BOOK['cycles'] += 1
     if done: break
   
-  renderTape(TAPE, HEAD, EXIT_STATUS, cycles)
+  renderTape(TAPE, HEAD, BOOK)
 
 
 
@@ -195,15 +196,17 @@ def brae(A=0):
 
 
 def drawAndMove(N=0, LHE=0, C=0):
-  global TAPE
+  global TAPE, BOOK 
   TAPE[HEAD] = {'empty': False, 'ord': C}
+  BOOK['writes'] += 1
   move(N, LHE) 
 
 
 def move(N=0, LHE=0, C=0):
-  global HEAD, TAPE
+  global HEAD, TAPE, BOOK
   direction = -1 if LHE else 1
   HEAD += N * direction
+  BOOK['moves'] += N
 
   #If we went off the end of the tape, extend the tape with blanks. 
   if not HEAD in range(0, len(TAPE)):
@@ -218,14 +221,15 @@ def move(N=0, LHE=0, C=0):
 
 
 def stop(N=0, LHE=0, C=0):
-  global EXIT_STATUS
-  EXIT_STATUS = "success" if LHE else "failure"
+  global BOOK
+  BOOK['exit status'] = "success" if LHE else "failure"
 
 
 
 def eraseAndMove(N=0, LHE=0, C=0):
-  global TAPE
+  global TAPE, BOOK
   TAPE[HEAD] = {'empty': True}
+  BOOK['writes'] += 1
   move(N, LHE)
 
 
@@ -250,6 +254,8 @@ def initTape(input_string):
   tape = []
   for char in input_string:
     tape.append({ 'empty': False, 'ord': ord(char) })
+  if not tape:
+    tape.append({'empty': True})
   return tape
 
 
@@ -265,7 +271,7 @@ def compareTapeItems(item1, item2):
   return eq
 
 
-def renderTape(tape, head, exit_status, cycles):
+def renderTape(tape, head, book):
   out = sys.stdout.write
   for item in tape:
     char = ' ' if item['empty'] else chr(item['ord'])
@@ -274,7 +280,10 @@ def renderTape(tape, head, exit_status, cycles):
   for _ in range(0, head):
     out(' ')
   out('^\n')
-  out('Exit Status: {0}\t\t Cycles: {1}'.format(exit_status, cycles))
+  for key, value in book.items():
+    out((key+':').ljust(15))
+    out(str(value).rjust(10))
+    out('\n')
   out('\n\n\n\n')
 
 

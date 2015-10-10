@@ -162,7 +162,7 @@ def main():
   #to lower case and strip the comments from the token lists. Also, remove the 
   #label declarations. (Pass 1)
   assembly_instructions, label_table = createLabelTable(assembly_instructions) 
-  
+
   #generate the actual machine instructions (Pass 2)
   machine_instructions = generateMachineInstructions()
 
@@ -484,8 +484,6 @@ def decomposeInstructions():
 #As we are de-composing instructions and optimizing we will need to adjust the 
 #lines that the respective labels point to.
 def adjustLabelTable(current_line=0, incr=0):
-  if incr != 0: 
-    print(incr) 
   global label_table
   for label in label_table.keys():
     if label_table[label] >= current_line:
@@ -543,7 +541,7 @@ def makeBytes(instructions):
       return '{:013b}'.format(address)
     except ValueError:
       abort(
-        error_message = "This label was referenced but never declared:", 
+        error_message = "This label was referenced by a branch but was never declared", 
         token = address,
         label_flag = True
       )
