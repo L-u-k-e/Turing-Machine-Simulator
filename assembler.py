@@ -103,7 +103,7 @@ syntax_forms = {
 
 op_codes = {
   'alpha': ['000', 'A'],
-  'cmp':   ['001', 'A'],
+  'cmp':   ['001', 'C'],
   'brane': ['010', 'B'],
   'brae':  ['011', 'B'],
   'draw':  ['100', 'C'],
@@ -117,7 +117,7 @@ ISA_map = {
   'alpha': ['alpha'],
   'halt':  ['stop', 1],
   'fail':  ['stop', 0],
-  'cmp':   ['cmp'],
+  'cmp':   ['cmp', 0, 0],
   'brae':  ['brae'],
   'brane': ['brane'],
   'bra':   [('brae',),('brane',)],
@@ -225,7 +225,7 @@ def createLabelTable(token_lists):
         )
       else:
         is_label = True
-        label_table[token] = i - len(label_table)
+        label_table[token] = len(trimmed_instructions) 
     else:
       #Not a label declaration, check for syntax errors. 
       is_label = False
@@ -449,9 +449,15 @@ def decomposeInstructions():
       for char in arg:
         result.append(machine_instruction_info + [char])
     else:
-      arg = int(arg) if 'number' in syntax_forms[instruction] else arg
-      if arg:machine_instruction_info.append(arg)
+      if 'number' in syntax_forms[instruction]:
+        arg = int(arg)
+      elif instruction == 'cmp' and arg == '':
+        machine_instruction_info[1] = 1
+
+      if arg: 
+        machine_instruction_info.append(arg)
       result.append(machine_instruction_info)
+
     return result
 
   decomposed_instructions = []
@@ -478,6 +484,8 @@ def decomposeInstructions():
 #As we are de-composing instructions and optimizing we will need to adjust the 
 #lines that the respective labels point to.
 def adjustLabelTable(current_line=0, incr=0):
+  if incr != 0: 
+    print(incr) 
   global label_table
   for label in label_table.keys():
     if label_table[label] >= current_line:

@@ -44,55 +44,41 @@ alpha "abc&-"
   brae !1_c
   fail
 
-!1_a     
+!1_a 
+  erase    
   right 1               
   cmp 'a'               
-  brane !1_a_1          
-  erase               
-  right 1
+  brane !1_a_*                         
   brae !1_a
-!1_a_1
+
+!1_a_*
   left 1
-  cmp ''
-  brae !1_a_2
-  fail
-!1_a_2
   draw 'a'
   right 1
   bra !1
 
 
-!1_b                    
-  right 1               
+!1_b  
+  erase
+  right 1                               
   cmp 'b'               
-  brane !1_b_1          
-  erase               
-  right 1
+  brane !1_b_*          
   brae !1_b
-!1_b_1
+!1_b_*
   left 1
-  cmp ''
-  brae !1_b_2
-  fail
-!1_b_2
   draw 'b'
   right 1
   bra !1
 
 
-!1_c                    
-  right 1               
+!1_c   
+  erase  
+  right 1                             
   cmp 'c'               
-  brane !1_c_1          
-  erase              
-  right 1
+  brane !1_c_*          
   brae !1_c
-!1_c_1
+!1_c_*
   left 1
-  cmp ''
-  brae !1_c_2
-  fail
-!1_c_2
   draw 'c'
   right 1
   bra !1
@@ -100,15 +86,15 @@ alpha "abc&-"
 
 !1_e
   left 1
-
+  
 
 #Part 2: traverse the string right, to left. 
-#Move each [abc] to the left of the '&''
+#Move each [abc] to the left of the '&'
 
 !2
   cmp ''
   brae !2_e
-  cmp 'b'
+  cmp 'a'
   brae !2_a
   cmp 'b'
   brae !2_b
@@ -226,5 +212,5 @@ alpha "abc&-"
   brane !3
 
 !3_e
-  right 1
-  HALT
+ right 1
+ HALT
