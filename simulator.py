@@ -205,13 +205,13 @@ def cmp(N=0, LHE=0, C=0):
 
 
 def brane(A=0):
-  global PC
+  global PC, REG
   if not REG:
     PC = A
 
 
 def brae(A=0):
-  global PC
+  global PC, REG
   if REG:
     PC = A
 
@@ -220,10 +220,11 @@ def drawAndMove(N=0, LHE=0, C=0):
   global TAPE, BOOK 
   TAPE[HEAD] = {'empty': False, 'ord': C}
   BOOK['writes'] += 1
-  move(N, LHE) 
+  move(N, LHE)
 
 
 def move(N=0, LHE=0, C=0):
+  #print('moving')
   global HEAD, TAPE, BOOK
   direction = -1 if LHE else 1
   HEAD += N * direction

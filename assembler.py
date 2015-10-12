@@ -437,8 +437,41 @@ def adjustLabelTable(current_line=0, incr=0):
 
 
 def optimizeInstructionSet(instructions):
-  return instructions
+  new_instructions = []
+  #check for draw/move or erase/move sequences and combine them
+  i=0
+  j=0
+  while i < len(instructions):
+    if ( instructions[i][0] in ['draw', 'erase'] and
+         instructions[i+1][0] == 'move'          and 
+         shareLabel(i, i+1)                         ):
+        new = [instructions[i][0]]
+        new += instructions[i+1][1:3]
+        new.append(instructions[i][-1])
+        new_instructions.append(new)
+        i+=1
+        adjustLabelTable(j+1, -1)
+    else:
+      new_instructions.append(instructions[i])
+    i+=1
+    j+=1
+  return new_instructions
 
+#iterate through the label table and check to see if 2 instruction 
+#addresses fall under the same label
+def shareLabel(i, j):
+  addresses = [0, 0]
+  operands = [i, j]
+  labels = ["",""]
+  for label, address in label_table.items():
+    for k in range(2):
+      if address < operands[k] and address > addresses[k]:
+        addresses[k] = address
+        labels[k] = label
+  res = False
+  if labels[0] == labels[1]:
+    res = True
+  return res
 
 
 
@@ -512,11 +545,11 @@ def makeBytes(instructions):
 
 
   #uncomment for debugging (leave the indentation as is)
-  #'''
+  '''
     char_strings.append(bits)
   for i, bits in enumerate(char_strings):
     print("{0}{1}".format(str(instructions[i]).ljust(25),  bits) )
-  #'''
+  '''
   return bit_strings    
 
 
