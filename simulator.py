@@ -74,7 +74,7 @@ def simulate(input_tape):
   HEAD = 0
   ALPHA = [False] * 256
   PC = 0
-  REG = {'empty': True}
+  REG = False
 
   BOOK['cycles'] = 0
   BOOK['moves'] = 0
@@ -199,20 +199,20 @@ def cmp(N=0, LHE=0, C=0):
   if not LHE and not ALPHA[C]:
     stop()
   else:
-    reg_item = {'ord': C}
-    reg_item['empty'] = True if LHE else False
-    REG = reg_item
+    item = {'ord': C}
+    item['empty'] = True if LHE else False
+    REG = compareTapeItems(item, TAPE[HEAD])
 
 
 def brane(A=0):
   global PC
-  if not compareTapeItems(REG, TAPE[HEAD]):
+  if not REG:
     PC = A
 
 
 def brae(A=0):
   global PC
-  if compareTapeItems(REG, TAPE[HEAD]):
+  if REG:
     PC = A
 
 
@@ -252,8 +252,6 @@ def eraseAndMove(N=0, LHE=0, C=0):
   TAPE[HEAD] = {'empty': True}
   BOOK['writes'] += 1
   move(N, LHE)
-
-
 
 
 
