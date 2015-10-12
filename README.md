@@ -1,6 +1,6 @@
 Turing Machine Simulator
 ===
-Both an assembler and a simulator for a fictitous architecture whose soul purpose is to simulate a classical Turing Machine.
+Both an assembler and a simulator for a fictitous architecture whose sole purpose is to simulate a classical Turing Machine.
 
 
 ##Supported Assembly Instructions
