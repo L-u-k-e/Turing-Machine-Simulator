@@ -24,7 +24,7 @@ Usage
   -  Equivalent to the address of the next line of expected code. The identifiers can be any non­whitespace characters led with an exclamation point.
 
 
- - **Alphabet**   
+ - **Alphabet Addition**   
   - `alpha 'a'`
   - `alpha "a"` 
   - `alpha "abABxy"`
