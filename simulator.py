@@ -1,6 +1,19 @@
+'''
+  Author:  Lucas Parzych
+  LICENSE: MIT
+  SOURCE:  https://github.com/L-u-k-e/Turing-Machine-Simulator
+'''
 import sys
 import copy
 import struct
+
+
+
+
+
+
+
+
 
 
 ################################## GLOBALS #####################################
@@ -42,6 +55,7 @@ OP_INFO = {
 
 
 
+################################### MAIN #######################################
 def main():
   global RAM, TAPES
   RAM = ['1100000000000000'] * (2**13)
@@ -89,6 +103,11 @@ def simulate(input_tape):
 
 
 
+
+
+
+
+################################### FETCH ######################################
 def fetch(pc):
   ir = RAM[pc]
   pc += 1
@@ -112,6 +131,7 @@ def fetch(pc):
 
 
 
+################################## DECODE ######################################
 def decode(bitstring):
   instruction = {}
   opcode = bitstring[:3]
@@ -161,6 +181,7 @@ def C(bitstring):
 
 
 
+################################# EXECUTE ######################################
 def execute(instruction, arguments):
   eval('{0} ( **{1} )'.format(instruction, arguments))
   done = True if instruction == 'stop' else False
@@ -250,6 +271,7 @@ def eraseAndMove(N=0, LHE=0, C=0):
 
 
 
+############################# TAPE OPERATIONS ##################################
 def initTape(input_string):
   tape = []
   for char in input_string:
@@ -299,6 +321,12 @@ def renderTape(tape, head, book):
 
 
 
+
+
+
+
+
+######################## INITIALIZATION PROCEDURES #############################
 def slurpInstructions(filename):
   instructions = []
   with open(filename, 'rb') as f:
