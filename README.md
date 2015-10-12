@@ -2,6 +2,19 @@ Turing Machine Simulator
 ===
 Both an assembler and a simulator for a fictitous architecture whose sole purpose is to simulate a classical Turing Machine.
 
+Dependencies:
+---
+Python 3+: https://www.python.org/downloads/
+
+Usage
+---
+ - Compile the assembly code with assembler.py like: `python assembler.py assembly_file.asm`.
+ - This will create a binary (big endian ordering) named `(sys.argv[2]).bin` e.g. `assembly_file.asm.bin`.
+ - Pass the binary as the first argument to `simulator.py`. The second argument should be the tape file. The tape file should be a set of newline delimited character strings that you would like the run the TM solution on.
+ - Running the simulator might look like: `python simulator.py assembly_file.asm.bin input.tape`
+ - Results will be logged to console.
+
+
 
 ##Supported Assembly Instructions
 
