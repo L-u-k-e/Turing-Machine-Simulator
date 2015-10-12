@@ -70,9 +70,58 @@ Both an assembler and a simulator for a fictitous architecture whose soul purpos
   - “Blanks” the tape at the head.
 
 
---------
 
 
   Labels are case sensitive. Other instructions are not.
   
   Byte ordering is Big Endian 
+
+
+
+
+Machine Level ISA 
+---
+ - **key**
+  - O = opcode bit
+  - N = unsigned integer bit
+  - F = flag
+  - C = character
+  - R = reserved
+ 
+- **Operation Classes:**
+ - A: `OOORRRRRCCCCCCCC`
+ - B: `OOONNNNNNNNNNNNN`
+ - C: `OOONNNNFNNNNNNNN` OR `OOORRRRFCCCCCCCC` OR `OOORRRRFRRRRRRRR`
+
+- **Alpha: `000`**
+ - Class: A
+ - add the specified char to the internal alphabet file.
+
+- **cmp: `001`**
+ - Class: C
+ - compare contents of tape at head with the specified char, set the register accordingly. use F as a boolean to indicate that the comparison should be done against a "blank"
+
+- **brane: `010`**
+ - Class: B
+ - branch to the address specified by the provided 13 bit int if the eq register is set to False
+ 
+- **brane: `011`**
+ - Class: B
+ - branch to the address specified by the provided 13 bit int if the eq register is set to True
+
+- **draw/move: `100`**
+ - Class: C
+ - draw the char specified by the final 8 bits. Then, move following the same rules as the move instruction.
+
+- **move: `101`**
+ - Class: C
+ - Move the number of positions specified by the first 4 `NNNN` move left if F is 1, otherwise move right. 
+
+- **stop: `110`**
+ - Class: C
+ - stop processing instructions. If F is 1 exit with sucess, otherwise exit with failure. 
+
+- **erase/move: `111`**
+ - Class: C
+ - "blank" the tape at the head. The move following the same rules as the move instruction. 
+ 
