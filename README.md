@@ -8,6 +8,7 @@ Python 3+: https://www.python.org/downloads/
 
 Usage
 ---
+ - When you're writing the assembly, keep in mind that labels are case sensitive, but other instructions are not.
  - Compile the assembly code with assembler.py like: `python assembler.py assembly_file.asm`.
  - This will create a binary (big endian ordering) named `(sys.argv[2]).bin` e.g. `assembly_file.asm.bin`.
  - Pass the binary as the first argument to `simulator.py`. The second argument should be the tape file. The tape file should be a set of newline delimited character strings that you would like the run the TM solution on.
@@ -83,11 +84,6 @@ Usage
   - “Blanks” the tape at the head.
 
 
-
-
-  Labels are case sensitive. Other instructions are not.
-  
-  Byte ordering is Big Endian 
 
 
 
