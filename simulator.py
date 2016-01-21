@@ -224,7 +224,6 @@ def drawAndMove(N=0, LHE=0, C=0):
 
 
 def move(N=0, LHE=0, C=0):
-  #print('moving')
   global HEAD, TAPE, BOOK
   direction = -1 if LHE else 1
   HEAD += N * direction
